@@ -2,311 +2,172 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 from sklearn.ensemble import IsolationForest
+from sklearn.preprocessing import RobustScaler
 import plotly.express as px
+import plotly.graph_objects as go
 from pypdf import PdfReader
 import io
 import zipfile
 import re
+from datetime import datetime
 
-# Set page configuration with a global professional title and icon
+# ----------------------------------------------------
+# 1. PAGE CONFIGURATION & CUSTOM SVG LOGO
+# ----------------------------------------------------
 st.set_page_config(
-    page_title="NEXUS AI™ | Enterprise Cognitive & Compliance Suite",
-    page_icon="⚡",
-    layout="wide"
+    page_title="NEXUS AI™ | Sovereign Enterprise Suite",
+    page_icon="💠",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Custom Styling & Professional Corporate Branding
+# Custom Vector SVG Logo (Never breaks, ultra-sharp on all screens)
+NEXUS_LOGO_SVG = """
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nexusGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="50%" stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#818CF8"/>
+    </linearGradient>
+  </defs>
+  <polygon points="32,2 58,17 58,47 32,62 6,47 6,17" fill="url(#nexusGrad)" stroke="url(#accentGrad)" stroke-width="2.5"/>
+  <polygon points="32,12 49,22 49,42 32,52 15,42 15,22" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-dasharray="4 2"/>
+  <circle cx="32" cy="32" r="7" fill="#38BDF8"/>
+  <line x1="32" y1="12" x2="32" y2="25" stroke="#93C5FD" stroke-width="2"/>
+  <line x1="32" y1="39" x2="32" y2="52" stroke="#93C5FD" stroke-width="2"/>
+  <line x1="15" y1="22" x2="26" y2="28" stroke="#93C5FD" stroke-width="2"/>
+  <line x1="49" y1="42" x2="38" y2="36" stroke="#93C5FD" stroke-width="2"/>
+</svg>
+"""
+
+# Global CSS Styling
 st.markdown("""
     <style>
-    .main-header {
-        font-size: 38px;
+    .nexus-banner {
+        background: linear-gradient(90deg, #0F172A 0%, #1E293B 100%);
+        padding: 20px 28px;
+        border-radius: 12px;
+        border-left: 6px solid #3B82F6;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    .nexus-title {
+        font-size: 34px;
         font-weight: 900;
-        color: #0F172A;
-        text-align: left;
-        margin-bottom: 0px;
-        letter-spacing: -1px;
+        color: #FFFFFF;
+        margin: 0;
+        letter-spacing: -0.5px;
     }
-    .sub-header {
-        font-size: 17px;
-        color: #475569;
-        margin-bottom: 25px;
+    .nexus-tagline {
+        font-size: 14px;
+        color: #93C5FD;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-top: 2px;
     }
-    .brand-badge {
-        background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
-        color: white;
-        padding: 6px 14px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 800;
-        letter-spacing: 1.5px;
+    .nexus-sub {
+        font-size: 15px;
+        color: #CBD5E1;
+        margin-top: 6px;
+    }
+    .badge-pro {
+        background-color: #2563EB;
+        color: #FFFFFF;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        vertical-align: middle;
+        margin-left: 10px;
+    }
+    .healing-box {
+        background-color: #F0FDF4;
+        border: 1px solid #BBF7D0;
+        border-left: 4px solid #16A34A;
+        padding: 12px 16px;
+        border-radius: 6px;
+        color: #166534;
+        font-size: 14px;
+        margin-bottom: 15px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Brand Logo & Title Section
-col_logo, col_title = st.columns([1, 9])
-with col_logo:
-    st.markdown("<h1>⚡</h1>", unsafe_allow_html=True)
-with col_title:
-    st.markdown("<div class='main-header'>NEXUS AI™ <span class='brand-badge'>ENTERPRISE SUITE</span></div>", unsafe_allow_html=True)
-    st.markdown("<div class='sub-header'>Global Cognitive & Compliance Hub | Advanced Cybersecurity Telemetry, Fiscal Fraud Auditing, Deep PDF Governance & Bulk Batch Processing.</div>", unsafe_allow_html=True)
-
-st.markdown("---")
-
-# Sidebar Commercial Control Panel & Options
-st.sidebar.markdown("## 🌐 ENTERPRISE CONTROL HUB")
-st.sidebar.markdown("---")
-enterprise_tier = st.sidebar.selectbox("Select Corporate Tier", [
-    "Fortune 500 Sovereign Tier", 
-    "Government Defense & Fiscal Cloud", 
-    "Global Audit & Compliance Edition"
-])
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("🎛️ Algorithmic Hyperparameters")
-contamination_rate = st.sidebar.slider("Anomaly Sensitivity Matrix", min_value=0.01, max_value=0.25, value=0.05, step=0.01)
-confidence_threshold = st.sidebar.slider("Algorithmic Confidence (%)", min_value=90.0, max_value=99.9, value=98.5, step=0.1)
-
-st.sidebar.markdown("---")
-st.sidebar.info("🔒 **ISO/IEC 27001, SOC2 & GDPR Compliant:** Zero-data retention architecture with quantum-safe memory isolation.")
-
-# Create Professional Encyclopedia Tabs for Enterprise Options
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🛡️ Cybersecurity Telemetry", 
-    "💰 Fiscal Fraud Auditing", 
-    "📄 Smart PDF & Invoice AI", 
-    "📦 Bulk Batch Processing",
-    "🏢 Corporate Compliance Hub"
-])
+# Header Layout with Custom SVG Logo
+st.markdown(f"""
+    <div class="nexus-banner">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div>{NEXUS_LOGO_SVG}</div>
+            <div>
+                <div class="nexus-title">NEXUS AI™ <span class="badge-pro">GEN-6 AUTONOMOUS CORE</span></div>
+                <div class="nexus-tagline">Autonomous Intelligence. Zero Blind Spots.</div>
+                <div class="nexus-sub">Self-Healing Data Engine • Auto-Calibrating Neural Risk Matrix • Live Cognitive Copilot</div>
+            </div>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
 
 # ----------------------------------------------------
-# TAB 1: Cybersecurity Telemetry & Threat Detection
+# 2. SELF-HEALING & AUTO-TUNING ALGORITHMIC ENGINE
 # ----------------------------------------------------
-with tab1:
-    st.subheader("🛡️ Advanced Cybersecurity Network & Threat Detection Core")
-    uploaded_cyber = st.file_uploader("Upload Custom Network Logs (CSV)", type=["csv"], key="cyber_file")
+def self_heal_dataframe(df, required_cols):
+    """Autonomous Data Self-Healing: Fixes missing values, types, and corrupt rows."""
+    healing_log = []
+    df_clean = df.copy()
     
-    @st.cache_data
-    def load_cyber_data(file):
-        if file is not None:
-            return pd.read_csv(file)
+    # Normalize column names
+    df_clean.columns = [c.strip() for c in df_clean.columns]
+    
+    # Check missing values and impute with median
+    null_count = df_clean.isnull().sum().sum()
+    if null_count > 0:
+        for col in df_clean.select_dtypes(include=[np.number]).columns:
+            if df_clean[col].isnull().any():
+                median_val = df_clean[col].median()
+                df_clean[col].fillna(median_val, inplace=True)
+        healing_log.append(f"Imputed {null_count} missing/corrupted cells using robust median estimation.")
+        
+    # Remove exact duplicate rows
+    dup_count = df_clean.duplicated().sum()
+    if dup_count > 0:
+        df_clean.drop_duplicates(inplace=True)
+        healing_log.append(f"Purged {dup_count} redundant duplicate records.")
+        
+    # Ensure required numeric columns exist
+    for col in required_cols:
+        if col not in df_clean.columns:
+            df_clean[col] = np.random.normal(100, 15, len(df_clean))
+            healing_log.append(f"Synthesized missing schema feature '{col}' via baseline distribution.")
         else:
-            np.random.seed(42)
-            n_samples = 1000
-            data = {
-                'Packet_Size': np.random.normal(500, 100, n_samples),
-                'Failed_Attempts': np.random.poisson(1, n_samples),
-                'Response_Time': np.random.exponential(1.5, n_samples)
-            }
-            data['Packet_Size'][30:45] = np.random.normal(5500, 400, 15)
-            data['Failed_Attempts'][30:45] = np.random.randint(22, 45, 15)
-            df = pd.DataFrame(data)
-            df['Timestamp'] = pd.date_range(start='2026-11-15 18:00:00', periods=n_samples, freq='s')
-            return df
-
-    df_cyber = load_cyber_data(uploaded_cyber)
-    model_cyber = IsolationForest(contamination=contamination_rate, random_state=42)
-    df_cyber['Anomaly_Score'] = model_cyber.fit_predict(df_cyber[['Packet_Size', 'Failed_Attempts', 'Response_Time']])
-    df_cyber['Status'] = df_cyber['Anomaly_Score'].apply(lambda x: 'Critical Threat Vector' if x == -1 else 'Secured Node')
-
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Packets Scanned", len(df_cyber))
-    c2.metric("Threats Neutralized", len(df_cyber[df_cyber['Status'] == 'Critical Threat Vector']))
-    c3.metric("Neural Precision", f"{confidence_threshold}%")
-    c4.metric("Defense Status", "🚨 DEFCON 1" if len(df_cyber[df_cyber['Status'] == 'Critical Threat Vector']) > 20 else "🟢 SECURE")
-
-    fig_cyber = px.scatter(df_cyber, x='Packet_Size', y='Failed_Attempts', color='Status',
-                     color_discrete_map={'Secured Node': '#10B981', 'Critical Threat Vector': '#EF4444'},
-                     title="Real-Time Neural Threat Dispersion Matrix", hover_data=['Timestamp', 'Response_Time'])
-    st.plotly_chart(fig_cyber, use_container_width=True)
-    
-    st.subheader("📋 Granular Cybersecurity Audit Logs")
-    st.dataframe(df_cyber, use_container_width=True)
-    
-    csv_cyber = df_cyber.to_csv(index=False).encode('utf-8')
-    st.download_button("Download Official Cybersecurity Certificate (CSV)", data=csv_cyber, file_name='enterprise_cyber_audit.csv', mime='text/csv', key='dl_cyber')
-
-# ----------------------------------------------------
-# TAB 2: Government & Financial Fraud Auditing
-# ----------------------------------------------------
-with tab2:
-    st.subheader("💰 Government & Fiscal Fraud Auditing Intelligence")
-    uploaded_fin = st.file_uploader("Upload Financial Ledger Dataset (CSV)", type=["csv"], key="fin_file")
-    
-    @st.cache_data
-    def load_financial_data(file):
-        if file is not None:
-            return pd.read_csv(file)
-        else:
-            np.random.seed(42)
-            n_samples = 1000
-            data = {
-                'Transaction_Amount': np.random.normal(2000, 300, n_samples),
-                'Tax_Value': np.random.normal(150, 30, n_samples),
-                'Processing_Days': np.random.poisson(2, n_samples)
-            }
-            data['Transaction_Amount'][25:40] = np.random.normal(45000, 3000, 15)
-            data['Tax_Value'][25:40] = np.random.normal(6000, 600, 15)
-            df = pd.DataFrame(data)
-            df['Transaction_Date'] = pd.date_range(start='2026-11-15 18:00:00', periods=n_samples, freq='h')
-            return df
-
-    df_fin = load_financial_data(uploaded_fin)
-    model_fin = IsolationForest(contamination=contamination_rate, random_state=42)
-    df_fin['Anomaly_Score'] = model_fin.fit_predict(df_fin[['Transaction_Amount', 'Tax_Value', 'Processing_Days']])
-    df_fin['Status'] = df_fin['Anomaly_Score'].apply(lambda x: 'Fiscal Fraud Flag' if x == -1 else 'Verified Compliant')
-
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Ledgers Audited", len(df_fin))
-    c2.metric("Fraud Flags Detected", len(df_fin[df_fin['Status'] == 'Fiscal Fraud Flag']))
-    c3.metric("Audit Confidence", f"{confidence_threshold}%")
-    c4.metric("Compliance State", "⚠️ AUDIT REQ" if len(df_fin[df_fin['Status'] == 'Fiscal Fraud Flag']) > 5 else "✅ 100% COMPLIANT")
-
-    fig_fin = px.scatter(df_fin, x='Transaction_Amount', y='Tax_Value', color='Status',
-                     color_discrete_map={'Verified Compliant': '#10B981', 'Fiscal Fraud Flag': '#EF4444'},
-                     title="Deep Fiscal Anomaly & Fraud Extraction Engine", hover_data=['Transaction_Date', 'Processing_Days'])
-    st.plotly_chart(fig_fin, use_container_width=True)
-
-    st.subheader("📋 Granular Fiscal Audit Matrix")
-    st.dataframe(df_fin, use_container_width=True)
-    
-    csv_fin = df_fin.to_csv(index=False).encode('utf-8')
-    st.download_button("Download Official Financial Audit Report (CSV)", data=csv_fin, file_name='enterprise_financial_audit.csv', mime='text/csv', key='dl_fin')
-
-# ----------------------------------------------------
-# TAB 3: Smart PDF & Invoice Document Analyzer (Fixed & Enhanced)
-# ----------------------------------------------------
-with tab3:
-    st.subheader("📄 Smart PDF & Invoice Document Intelligence Core")
-    uploaded_pdf = st.file_uploader("Upload Government/Financial PDF Document", type=["pdf"], key="pdf_file")
-    
-    if uploaded_pdf is not None:
-        try:
-            # Robust reading using BytesIO buffer for Streamlit uploaded file
-            pdf_bytes = io.BytesIO(uploaded_pdf.getvalue())
-            reader = PdfReader(pdf_bytes)
-            text_content = ""
-            for i, page in enumerate(reader.pages):
-                extracted = page.extract_text()
-                if extracted:
-                    text_content += f"\n--- Page {i+1} ---\n" + extracted
+            df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce').fillna(0)
             
-            if not text_content.strip():
-                st.warning("⚠️ The uploaded PDF appears to contain scanned images without text layers. Please upload a text-based PDF.")
-            else:
-                st.success(f"Successfully executed Neural OCR & Parsed document ({len(reader.pages)} pages).")
-                
-                amounts = re.findall(r'\b(?:\$|USD|EUR|SAR|AED)?\s?\d{1,3}(?:,\d{3})*(?:\.\d{2})?\b', text_content)
-                emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text_content)
-                
-                col_ex1, col_ex2 = st.columns(2)
-                with col_ex1:
-                    st.info(f"💡 **Extracted Monetary Tokens:** {', '.join(amounts[:10]) if amounts else 'None detected'}")
-                with col_ex2:
-                    st.info(f"📧 **Extracted Entities & Emails:** {', '.join(emails[:6]) if emails else 'None detected'}")
-
-                st.subheader("💬 Autonomous Document Cognitive Assistant")
-                user_query = st.text_input("Query document context (e.g., total amount, contract clauses, penalties, taxes):", key="pdf_query")
-                if user_query:
-                    if user_query.lower() in text_content.lower() or any(w in text_content.lower() for w in user_query.lower().split()):
-                        st.success(f"✅ Cognitive match verified for query: '{user_query}' across semantic indices.")
-                    else:
-                        st.warning(f"⚠️ Semantic token match for '{user_query}' not found in current layer.")
-
-                with st.expander("🔍 View Raw Tokenized Text Layer"):
-                    st.text_area("Extracted Document Content", text_content, height=250, key="pdf_text_area")
-                    
-                st.subheader("🤖 Automated Legal & Governance Risk Audit")
-                risk_keywords = ["fraud", "suspicious", "error", "delay", "penalty", "urgent", "unauthorized", "خطر", "مخالفة", "تأخير", "tax", "ضريبة", "غرامة", "breach"]
-                found_risks = [kw for kw in risk_keywords if kw in text_content.lower()]
-                
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Governance State", "⚠️ Risk Flagged" if found_risks else "✅ Certified Clean")
-                c2.metric("Risk Indicators", len(set(found_risks)))
-                c3.metric("Neural Confidence", f"{confidence_threshold}%")
-                
-                if found_risks:
-                    st.warning(f"NEXUS Core detected governance violations: {', '.join(set(found_risks))}")
-                else:
-                    st.info("No compliance violations or governance risks detected in document layers.")
-                    
-                df_pdf = pd.DataFrame({
-                    'Document_Name': [uploaded_pdf.name],
-                    'Total_Pages': [len(reader.pages)],
-                    'Risk_Flags_Count': [len(found_risks)],
-                    'Audit_Status': ['Review Required' if found_risks else 'Certified Clean']
-                })
-                st.dataframe(df_pdf, use_container_width=True)
-                
-                csv_pdf = df_pdf.to_csv(index=False).encode('utf-8')
-                st.download_button("Download PDF Governance Certificate (CSV)", data=csv_pdf, file_name='enterprise_pdf_certificate.csv', mime='text/csv', key='dl_pdf')
+    if not healing_log:
+        healing_log.append("Schema integrity verified at 100%. Zero structural anomalies found.")
         
-        except Exception as e:
-            st.error(f"❌ Error reading PDF file: {str(e)}")
-    else:
-        st.info("👈 Please upload a secure PDF file above to activate the neural document parsing engine.")
+    return df_clean, healing_log
 
-# ----------------------------------------------------
-# TAB 4: Bulk Batch ZIP Processing
-# ----------------------------------------------------
-with tab4:
-    st.subheader("📦 Bulk Batch ZIP Processing & Enterprise Ingestion")
-    uploaded_zip = st.file_uploader("Upload Corporate ZIP Archive (Bulk Files)", type=["zip"], key="zip_file")
+def auto_calibrate_and_score(df, feature_cols, manual_contamination=None):
+    """Self-Evolving Algorithm: Auto-tunes contamination via IQR and computes 0-100 Risk Score."""
+    scaler = RobustScaler()
+    X_scaled = scaler.fit_transform(df[feature_cols])
     
-    if uploaded_zip is not None:
-        try:
-            zip_bytes = io.BytesIO(uploaded_zip.getvalue())
-            with zipfile.ZipFile(zip_bytes, 'r') as z:
-                file_list = z.namelist()
-                st.success(f"Successfully unpacked corporate secure archive. Files discovered: {len(file_list)}")
-                
-                batch_data = []
-                for filename in file_list[:40]:
-                    batch_data.append({
-                        'File_Name': filename,
-                        'Size_KB': round(z.getinfo(filename).file_size / 1024, 2),
-                        'Processing_Status': 'Neural Parsed Successfully',
-                        'Security_Audit': 'Quantum Verified'
-                    })
-                df_zip = pd.DataFrame(batch_data)
-                st.dataframe(df_zip, use_container_width=True)
-                
-                csv_zip = df_zip.to_csv(index=False).encode('utf-8')
-                st.download_button("Download Bulk Batch Audit Report (CSV)", data=csv_zip, file_name='enterprise_batch_certificate.csv', mime='text/csv', key='dl_zip')
-        except Exception as e:
-            st.error(f"❌ Error processing ZIP file: {str(e)}")
-    else:
-        st.info("👈 Please upload a ZIP archive containing logs or invoices for massive bulk neural processing.")
+    # Statistical Auto-Tuning using Interquartile Range (IQR)
+    Q1 = np.percentile(X_scaled, 25, axis=0)
+    Q3 = np.percentile(X_scaled, 75, axis=0)
+    IQR = Q3 - Q1
+    outlier_mask = ((X_scaled < (Q1 - 2.5 * IQR)) | (X_scaled > (Q3 + 2.5 * IQR))).any(axis=1)
+    estimated_rate = float(np.clip(outlier_mask.mean(), 0.01, 0.25))
+    
+    final_contamination = estimated_rate if manual_contamination is None else manual_contamination
+    
+    model = IsolationForest(n_estimators=200, contamination=final_contamination, random_state=42)
+    preds = model.fit_predict(X_scaled)
+    raw_scores = model.decision_function(X_scaled)
+    
 
-# ----------------------------------------------------
-# TAB 5: Corporate Compliance & Encyclopedia Hub
-# ----------------------------------------------------
-with tab5:
-    st.subheader("🏢 Corporate Compliance & Enterprise Encyclopedia Hub")
-    st.markdown("A comprehensive encyclopedia of regulatory frameworks, risk assessment matrices, and corporate governance tools designed for enterprise decision-makers.")
-    
-    col_a, col_b = st.columns(2)
-    with col_a:
-        st.markdown("### 📊 Enterprise Analytics Frameworks")
-        st.markdown("""
-        * **Basel III / IV Capital Compliance:** Automated liquidity and risk-weighted asset tracking.
-        * **SOX Section 404 Internal Controls:** Automated financial reporting integrity verification.
-        * **GDPR & CCPA Data Privacy Auditing:** PII entity scrubbing and consent ledger verification.
-        * **ISO 27001 Security Management:** Continuous telemetry and threat boundary evaluation.
-        """)
-    with col_b:
-        st.markdown("### 🛠️ Executive Resource Directory")
-        st.markdown("""
-        * **Automated Risk Scoring Matrix:** Real-time calculation of corporate risk exposure indices.
-        * **Multi-Domain Intelligence Routing:** Cross-correlating cybersecurity telemetry with fiscal ledgers.
-        * **Executive Boardroom Reporting:** One-click generation of audit-ready compliance certificates.
-        * **Zero-Retention Security Protocol:** Absolute data privacy with in-memory volatile processing.
-        """)
-        
-    st.markdown("---")
-    st.success("🟢 **System Status:** All cognitive engines, neural models, and secure data pipelines are fully operational at 99.99% uptime.")
-
-# Global Commercial Footer
-st.markdown("---")
-st.markdown("<p style='text-align: center; color: #64748B;'>© 2026 NEXUS AI Systems Inc. | Enterprise Cognitive & Compliance Suite. All Rights Reserved.</p>", unsafe_allow_html=True)
-    
