@@ -3,22 +3,23 @@ import numpy as np
 import streamlit as st
 from sklearn.ensemble import IsolationForest
 import plotly.express as px
-import io
 from pypdf import PdfReader
 
 # Set page configuration
 st.set_page_config(
-    page_title="Ultimate AI Multi-Domain & PDF Analyzer",
-    page_icon="🚀",
+    page_icon="💼",
     layout="wide"
 )
 
-# App Header
-st.title("🚀 Ultimate AI Multi-Domain & PDF Anomaly Platform")
-st.markdown("Advanced enterprise-grade system to analyze **Cybersecurity Logs**, **Government & Financial Transactions**, and **Upload Real PDF Invoices/Documents** with high-precision AI.")
+# App Header (Commercial Landing Style)
+st.title("💼 Enterprise AI Audit & Threat Detection Platform")
+st.markdown("### Professional AI-Powered Solutions for Cybersecurity, Financial Records, and Smart PDF Invoices Analysis.")
+st.markdown("---")
 
-# Sidebar Mode Selection
-st.sidebar.header("Control Panel")
+# Sidebar Commercial Control Panel
+st.sidebar.header("🏢 Enterprise Control Panel")
+plan_type = st.sidebar.selectbox("Select Subscription Tier", ["Free Trial Plan", "Enterprise Pro Plan"])
+
 analysis_mode = st.sidebar.selectbox(
     "Select Analysis Domain",
     ["Cybersecurity Network Logs", "Government & Financial Invoices (CSV)", "Smart PDF Document Analyzer"]
@@ -29,6 +30,10 @@ if analysis_mode == "Smart PDF Document Analyzer":
     uploaded_file = st.sidebar.file_uploader("Upload Government/Financial PDF Document", type=["pdf"])
 else:
     uploaded_file = st.sidebar.file_uploader(f"Upload CSV File for {analysis_mode}", type=["csv"])
+
+# Security & Privacy Badge in Sidebar
+st.sidebar.markdown("---")
+st.sidebar.info("🔒 **Enterprise Security:** All uploaded files and data are securely processed in memory with strict privacy compliance.")
 
 # 1. Cybersecurity Mode Logic
 if analysis_mode == "Cybersecurity Network Logs":
@@ -134,7 +139,6 @@ else:
         else:
             st.info("No critical anomalies or suspicious keywords detected in the uploaded PDF text.")
             
-        # Create dummy dataframe for table rendering consistency
         df = pd.DataFrame({
             'Document_Name': [uploaded_file.name],
             'Total_Pages': [len(reader.pages)],
@@ -147,20 +151,20 @@ else:
 
 # Common Table & Export Section
 if analysis_mode != "Smart PDF Document Analyzer" or uploaded_file is not None:
-    st.subheader("📋 Detailed Data Records & Logs")
+    st.subheader("📋 Detailed Data Records & Audit Logs")
     st.dataframe(df, use_container_width=True)
 
-    st.subheader("📥 Export Risk Report")
+    st.subheader("📥 Export Professional Audit Report")
     csv_data = df.to_csv(index=False).encode('utf-8')
 
     st.download_button(
-        label="Download Comprehensive Risk Report (CSV)",
+        label="Download Enterprise Risk Report (CSV)",
         data=csv_data,
-        file_name='system_comprehensive_report.csv',
+        file_name='enterprise_audit_report.csv',
         mime='text/csv'
     )
 
-# Footer
+# Commercial Footer
 st.markdown("---")
-st.markdown("🔒 **Ultimate Multi-Domain AI Platform** | Cybersecurity, Government Transactions & PDF Intelligence")
-            
+st.markdown("© 2026 Enterprise AI Solutions | Secure Cloud Platform for Corporate Auditing & Security.")
+        
