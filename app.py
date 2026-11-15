@@ -40,12 +40,6 @@ st.markdown("""
         font-weight: 700;
         letter-spacing: 1px;
     }
-    .metric-card {
-        background-color: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        padding: 15px;
-        border-radius: 10px;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -64,34 +58,31 @@ st.sidebar.markdown("## 🌐 NEXUS CONTROL SUITE")
 st.sidebar.markdown("---")
 plan_type = st.sidebar.selectbox("Enterprise Tier", ["Global Sovereign Tier", "Government Secured Cloud", "Fortune 500 Corporate"])
 
-analysis_mode = st.sidebar.selectbox(
-    "Select Intelligence Domain",
-    ["Cybersecurity Network Logs", "Government & Financial Invoices (CSV)", "Smart PDF Document Analyzer", "Batch ZIP File Processing"]
-)
-
 # Dynamic AI Sensitivity Sliders in Sidebar
 st.sidebar.markdown("---")
 st.sidebar.subheader("🎛️ Neural Engine Controls")
 contamination_rate = st.sidebar.slider("AI Threat/Fraud Sensitivity", min_value=0.01, max_value=0.25, value=0.05, step=0.01)
-confidence_threshold = st.slider("Confidence Threshold (%)", min_value=80, max_value=99, value=95)
-
-# File Uploader based on mode
-uploaded_file = None
-uploaded_zip = None
-
-if analysis_mode == "Smart PDF Document Analyzer":
-    uploaded_file = st.sidebar.file_uploader("Upload Government/Financial PDF Document", type=["pdf"])
-elif analysis_mode == "Batch ZIP File Processing":
-    uploaded_zip = st.sidebar.file_uploader("Upload ZIP Archive (Bulk Enterprise Files)", type=["zip"])
-else:
-    uploaded_file = st.sidebar.file_uploader(f"Upload CSV Dataset for {analysis_mode}", type=["csv"])
+confidence_threshold = st.sidebar.slider("Confidence Threshold (%)", min_value=80, max_value=99, value=95)
 
 # Security & Compliance Global Badge
 st.sidebar.markdown("---")
 st.sidebar.info("🔒 **ISO/IEC 27001 & SOC2 Type II Certified:** End-to-end memory isolation. Zero data retention policy strictly enforced globally.")
 
-# 1. Cybersecurity Mode Logic
-if analysis_mode == "Cybersecurity Network Logs":
+# Create Clean Professional Tabs for Each Domain
+tab1, tab2, tab3, tab4 = st.tabs([
+    "🛡️ Cybersecurity Logs", 
+    "💰 Financial Audits", 
+    "📄 Smart PDF Intelligence", 
+    "📦 Batch ZIP Processing"
+])
+
+# ----------------------------------------------------
+# TAB 1: Cybersecurity Network Logs
+# ----------------------------------------------------
+with tab1:
+    st.subheader("📊 Global Network Traffic Telemetry & Threat Matrix")
+    uploaded_cyber = st.file_uploader("Upload Custom Network Logs CSV (Optional)", type=["csv"], key="cyber_file")
+    
     @st.cache_data
     def load_cyber_data(file):
         if file is not None:
@@ -110,27 +101,35 @@ if analysis_mode == "Cybersecurity Network Logs":
             df['Timestamp'] = pd.date_range(start='2026-11-15 18:00:00', periods=n_samples, freq='s')
             return df
 
-    df = load_cyber_data(uploaded_file)
-    
-    model = IsolationForest(contamination=contamination_rate, random_state=42)
-    df['Anomaly_Score'] = model.fit_predict(df[['Packet_Size', 'Failed_Attempts', 'Response_Time']])
-    df['Status'] = df['Anomaly_Score'].apply(lambda x: 'Critical Threat' if x == -1 else 'Secure Network')
+    df_cyber = load_cyber_data(uploaded_cyber)
+    model_cyber = IsolationForest(contamination=contamination_rate, random_state=42)
+    df_cyber['Anomaly_Score'] = model_cyber.fit_predict(df_cyber[['Packet_Size', 'Failed_Attempts', 'Response_Time']])
+    df_cyber['Status'] = df_cyber['Anomaly_Score'].apply(lambda x: 'Critical Threat' if x == -1 else 'Secure Network')
 
-    st.subheader("📊 Global Network Traffic Telemetry & Threat Matrix")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Packets Scanned", len(df))
-    col2.metric("Critical Threats Flagged", len(df[df['Status'] == 'Critical Threat']))
-    col3.metric("Neural Accuracy", f"{confidence_threshold}%")
-    col4.metric("Threat Level", "🚨 DEFCON 1" if len(df[df['Status'] == 'Critical Threat']) > 20 else "🟢 SECURE")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Total Packets Scanned", len(df_cyber))
+    c2.metric("Critical Threats Flagged", len(df_cyber[df_cyber['Status'] == 'Critical Threat']))
+    c3.metric("Neural Accuracy", f"{confidence_threshold}%")
+    c4.metric("Threat Level", "🚨 DEFCON 1" if len(df_cyber[df_cyber['Status'] == 'Critical Threat']) > 20 else "🟢 SECURE")
 
-    st.subheader("📈 Advanced Neural Threat Distribution")
-    fig = px.scatter(df, x='Packet_Size', y='Failed_Attempts', color='Status',
+    fig_cyber = px.scatter(df_cyber, x='Packet_Size', y='Failed_Attempts', color='Status',
                      color_discrete_map={'Secure Network': '#10B981', 'Critical Threat': '#EF4444'},
                      title="Real-Time Network Telemetry Analysis", hover_data=['Timestamp', 'Response_Time'])
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig_cyber, use_container_width=True)
+    
+    st.subheader("📋 Granular Cybersecurity Audit Logs")
+    st.dataframe(df_cyber, use_container_width=True)
+    
+    csv_cyber = df_cyber.to_csv(index=False).encode('utf-8')
+    st.download_button("Download Cybersecurity Report (CSV)", data=csv_cyber, file_name='nexus_cyber_report.csv', mime='text/csv', key='dl_cyber')
 
-# 2. Government & Financial Invoices Mode Logic (CSV)
-elif analysis_mode == "Government & Financial Invoices (CSV)":
+# ----------------------------------------------------
+# TAB 2: Government & Financial Invoices
+# ----------------------------------------------------
+with tab2:
+    st.subheader("📊 Government & Fiscal Audit Intelligence Dashboard")
+    uploaded_fin = st.file_uploader("Upload Custom Financial Invoices CSV (Optional)", type=["csv"], key="fin_file")
+    
     @st.cache_data
     def load_financial_data(file):
         if file is not None:
@@ -149,37 +148,43 @@ elif analysis_mode == "Government & Financial Invoices (CSV)":
             df['Transaction_Date'] = pd.date_range(start='2026-11-15 18:00:00', periods=n_samples, freq='h')
             return df
 
-    df = load_financial_data(uploaded_file)
-    
-    model = IsolationForest(contamination=contamination_rate, random_state=42)
-    df['Anomaly_Score'] = model.fit_predict(df[['Transaction_Amount', 'Tax_Value', 'Processing_Days']])
-    df['Status'] = df['Anomaly_Score'].apply(lambda x: 'Fiscal Fraud Flag' if x == -1 else 'Verified Compliant')
+    df_fin = load_financial_data(uploaded_fin)
+    model_fin = IsolationForest(contamination=contamination_rate, random_state=42)
+    df_fin['Anomaly_Score'] = model_fin.fit_predict(df_fin[['Transaction_Amount', 'Tax_Value', 'Processing_Days']])
+    df_fin['Status'] = df_fin['Anomaly_Score'].apply(lambda x: 'Fiscal Fraud Flag' if x == -1 else 'Verified Compliant')
 
-    st.subheader("📊 Government & Fiscal Audit Intelligence Dashboard")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Invoices Audited", len(df))
-    col2.metric("Fraud Risks Flagged", len(df[df['Status'] == 'Fiscal Fraud Flag']))
-    col3.metric("Audit Confidence", f"{confidence_threshold}%")
-    col4.metric("Fiscal Status", "⚠️ REVISION REQ" if len(df[df['Status'] == 'Fiscal Fraud Flag']) > 5 else "✅ 100% COMPLIANT")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Invoices Audited", len(df_fin))
+    c2.metric("Fraud Risks Flagged", len(df_fin[df_fin['Status'] == 'Fiscal Fraud Flag']))
+    c3.metric("Audit Confidence", f"{confidence_threshold}%")
+    c4.metric("Fiscal Status", "⚠️ REVISION REQ" if len(df_fin[df_fin['Status'] == 'Fiscal Fraud Flag']) > 5 else "✅ 100% COMPLIANT")
 
-    st.subheader("📈 Tax vs Transaction Fiscal Fraud Matrix")
-    fig = px.scatter(df, x='Transaction_Amount', y='Tax_Value', color='Status',
+    fig_fin = px.scatter(df_fin, x='Transaction_Amount', y='Tax_Value', color='Status',
                      color_discrete_map={'Verified Compliant': '#10B981', 'Fiscal Fraud Flag': '#EF4444'},
                      title="Deep Fiscal Anomaly Extraction Engine", hover_data=['Transaction_Date', 'Processing_Days'])
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig_fin, use_container_width=True)
 
-# 3. PDF Document Analyzer Mode Logic
-elif analysis_mode == "Smart PDF Document Analyzer":
+    st.subheader("📋 Granular Fiscal Records Matrix")
+    st.dataframe(df_fin, use_container_width=True)
+    
+    csv_fin = df_fin.to_csv(index=False).encode('utf-8')
+    st.download_button("Download Financial Audit Report (CSV)", data=csv_fin, file_name='nexus_financial_report.csv', mime='text/csv', key='dl_fin')
+
+# ----------------------------------------------------
+# TAB 3: Smart PDF Document Analyzer
+# ----------------------------------------------------
+with tab3:
     st.subheader("📄 NEXUS Neural PDF & Invoice Intelligence Core")
-    if uploaded_file is not None:
-        reader = PdfReader(uploaded_file)
+    uploaded_pdf = st.file_uploader("Upload Government/Financial PDF Document", type=["pdf"], key="pdf_file")
+    
+    if uploaded_pdf is not None:
+        reader = PdfReader(uploaded_pdf)
         text_content = ""
         for i, page in enumerate(reader.pages):
             text_content += f"\n--- Page {i+1} ---\n" + page.extract_text()
         
         st.success(f"Successfully extracted document text ({len(reader.pages)} pages parsed securely with OCR neural parsing).")
         
-        # Deep Regex Extractions (Amounts, Emails, Dates)
         amounts = re.findall(r'\b(?:\$|USD|EUR|SAR|AED)?\s?\d{1,3}(?:,\d{3})*(?:\.\d{2})?\b', text_content)
         emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text_content)
         
@@ -189,9 +194,8 @@ elif analysis_mode == "Smart PDF Document Analyzer":
         with col_ex2:
             st.info(f"📧 **Extracted Entities / Emails:** {', '.join(emails[:5]) if emails else 'None detected'}")
 
-        # Interactive AI QA / Search inside PDF
         st.subheader("💬 NEXUS AI Autonomous Document Assistant")
-        user_query = st.text_input("Query document context (e.g., total amount, contract clauses, penalties):")
+        user_query = st.text_input("Query document context (e.g., total amount, contract clauses, penalties):", key="pdf_query")
         if user_query:
             if user_query.lower() in text_content.lower() or any(w in text_content.lower() for w in user_query.lower().split()):
                 st.success(f"✅ Context verified matching query: '{user_query}' across document indices.")
@@ -199,35 +203,42 @@ elif analysis_mode == "Smart PDF Document Analyzer":
                 st.warning(f"⚠️ No exact token match found for '{user_query}' in the parsed document layer.")
 
         with st.expander("🔍 View Raw Parsed Neural Text Layer"):
-            st.text_area("Extracted Document Content", text_content, height=250)
+            st.text_area("Extracted Document Content", text_content, height=250, key="pdf_text_area")
             
         st.subheader("🤖 Automated Legal & Risk Governance Audit")
         risk_keywords = ["fraud", "suspicious", "error", "delay", "penalty", "urgent", "unauthorized", "خطر", "مخالفة", "تأخير", "tax", "ضريبة", "غرامة", "breach"]
         found_risks = [kw for kw in risk_keywords if kw in text_content.lower()]
         
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Governance Status", "⚠️ Risk Flagged" if found_risks else "✅ Certified Clean")
-        col2.metric("Risk Indicators", len(set(found_risks)))
-        col3.metric("Neural Score", f"{confidence_threshold}%")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Governance Status", "⚠️ Risk Flagged" if found_risks else "✅ Certified Clean")
+        c2.metric("Risk Indicators", len(set(found_risks)))
+        c3.metric("Neural Score", f"{confidence_threshold}%")
         
         if found_risks:
             st.warning(f"NEXUS AI detected critical governance violations in document: {', '.join(set(found_risks))}")
         else:
             st.info("No compliance violations or governance risks detected in this document.")
             
-        df = pd.DataFrame({
-            'Document_Name': [uploaded_file.name],
+        df_pdf = pd.DataFrame({
+            'Document_Name': [uploaded_pdf.name],
             'Total_Pages': [len(reader.pages)],
             'Risk_Flags_Count': [len(found_risks)],
             'Audit_Status': ['Review Required' if found_risks else 'Certified Clean']
         })
+        st.dataframe(df_pdf, use_container_width=True)
+        
+        csv_pdf = df_pdf.to_csv(index=False).encode('utf-8')
+        st.download_button("Download PDF Governance Report (CSV)", data=csv_pdf, file_name='nexus_pdf_certificate.csv', mime='text/csv', key='dl_pdf')
     else:
-        st.info("👈 Please upload a PDF file from the sidebar to activate the neural document extraction engine.")
-        df = pd.DataFrame(columns=['Document_Name', 'Total_Pages', 'Risk_Flags_Count', 'Audit_Status'])
+        st.info("👈 Please upload a PDF file above to activate the neural document extraction engine.")
 
-# 4. Batch ZIP Processing Mode Logic
-else:
+# ----------------------------------------------------
+# TAB 4: Batch ZIP Processing
+# ----------------------------------------------------
+with tab4:
     st.subheader("📦 Global Batch Processing & Bulk Enterprise Intelligence")
+    uploaded_zip = st.file_uploader("Upload ZIP Archive (Bulk Enterprise Files)", type=["zip"], key="zip_file")
+    
     if uploaded_zip is not None:
         with zipfile.ZipFile(uploaded_zip, 'r') as z:
             file_list = z.namelist()
@@ -241,27 +252,13 @@ else:
                     'Processing_Status': 'Neural Parsed Successfully',
                     'Security_Audit': 'Certified Pass'
                 })
-            df = pd.DataFrame(batch_data)
-            st.dataframe(df, use_container_width=True)
+            df_zip = pd.DataFrame(batch_data)
+            st.dataframe(df_zip, use_container_width=True)
+            
+            csv_zip = df_zip.to_csv(index=False).encode('utf-8')
+            st.download_button("Download Batch Audit Report (CSV)", data=csv_zip, file_name='nexus_batch_certificate.csv', mime='text/csv', key='dl_zip')
     else:
         st.info("👈 Please upload a ZIP archive containing logs or invoices for massive bulk neural processing.")
-        df = pd.DataFrame(columns=['File_Name', 'Size_KB', 'Processing_Status', 'Security_Audit'])
-
-# Common Table & Export Section
-if analysis_mode != "Smart PDF Document Analyzer" or uploaded_file is not None:
-    if analysis_mode != "Batch ZIP File Processing":
-        st.subheader("📋 Granular Audit Logs & Enterprise Data Matrix")
-        st.dataframe(df, use_container_width=True)
-
-    st.subheader("📥 Export Official Global Compliance Certificate")
-    csv_data = df.to_csv(index=False).encode('utf-8')
-
-    st.download_button(
-        label="Download Official NEXUS Enterprise Compliance Certificate (CSV / Audit Ready)",
-        data=csv_data,
-        file_name='nexus_global_enterprise_certificate.csv',
-        mime='text/csv'
-    )
 
 # Global Commercial Footer
 st.markdown("---")
