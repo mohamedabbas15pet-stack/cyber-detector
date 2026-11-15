@@ -3,3 +3,9 @@ numpy
 scikit-learn
 pandas
 plotly
+streamlit
+numpy
+scikit-learn
+pandas
+plotly
+pypdf
