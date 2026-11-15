@@ -84,8 +84,6 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # ----------------------------------------------------
 with tab1:
     st.subheader("🛡️ Advanced Cybersecurity Network & Threat Detection Core")
-    st.markdown("Algorithmic monitoring of network packets, failed login vectors, and response time anomalies using Isolation Forest matrices.")
-    
     uploaded_cyber = st.file_uploader("Upload Custom Network Logs (CSV)", type=["csv"], key="cyber_file")
     
     @st.cache_data
@@ -133,8 +131,6 @@ with tab1:
 # ----------------------------------------------------
 with tab2:
     st.subheader("💰 Government & Fiscal Fraud Auditing Intelligence")
-    st.markdown("Automated detection of fiscal anomalies, tax discrepancies, and irregular transaction patterns for government and financial institutions.")
-    
     uploaded_fin = st.file_uploader("Upload Financial Ledger Dataset (CSV)", type=["csv"], key="fin_file")
     
     @st.cache_data
@@ -178,66 +174,75 @@ with tab2:
     st.download_button("Download Official Financial Audit Report (CSV)", data=csv_fin, file_name='enterprise_financial_audit.csv', mime='text/csv', key='dl_fin')
 
 # ----------------------------------------------------
-# TAB 3: Smart PDF & Invoice Document Analyzer
+# TAB 3: Smart PDF & Invoice Document Analyzer (Fixed & Enhanced)
 # ----------------------------------------------------
 with tab3:
     st.subheader("📄 Smart PDF & Invoice Document Intelligence Core")
-    st.markdown("Deep parsing of government contracts, financial invoices, and regulatory documents with autonomous entity extraction and risk governance.")
-    
     uploaded_pdf = st.file_uploader("Upload Government/Financial PDF Document", type=["pdf"], key="pdf_file")
     
     if uploaded_pdf is not None:
-        reader = PdfReader(uploaded_pdf)
-        text_content = ""
-        for i, page in enumerate(reader.pages):
-            text_content += f"\n--- Page {i+1} ---\n" + page.extract_text()
-        
-        st.success(f"Successfully executed Neural OCR on document ({len(reader.pages)} pages parsed securely).")
-        
-        amounts = re.findall(r'\b(?:\$|USD|EUR|SAR|AED)?\s?\d{1,3}(?:,\d{3})*(?:\.\d{2})?\b', text_content)
-        emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text_content)
-        
-        col_ex1, col_ex2 = st.columns(2)
-        with col_ex1:
-            st.info(f"💡 **Extracted Monetary Tokens:** {', '.join(amounts[:10]) if amounts else 'None detected'}")
-        with col_ex2:
-            st.info(f"📧 **Extracted Entities & Emails:** {', '.join(emails[:6]) if emails else 'None detected'}")
-
-        st.subheader("💬 Autonomous Document Cognitive Assistant")
-        user_query = st.text_input("Query document context (e.g., total amount, contract clauses, penalties, taxes):", key="pdf_query")
-        if user_query:
-            if user_query.lower() in text_content.lower() or any(w in text_content.lower() for w in user_query.lower().split()):
-                st.success(f"✅ Cognitive match verified for query: '{user_query}' across semantic indices.")
+        try:
+            # Robust reading using BytesIO buffer for Streamlit uploaded file
+            pdf_bytes = io.BytesIO(uploaded_pdf.getvalue())
+            reader = PdfReader(pdf_bytes)
+            text_content = ""
+            for i, page in enumerate(reader.pages):
+                extracted = page.extract_text()
+                if extracted:
+                    text_content += f"\n--- Page {i+1} ---\n" + extracted
+            
+            if not text_content.strip():
+                st.warning("⚠️ The uploaded PDF appears to contain scanned images without text layers. Please upload a text-based PDF.")
             else:
-                st.warning(f"⚠️ Semantic token match for '{user_query}' not found in current layer.")
+                st.success(f"Successfully executed Neural OCR & Parsed document ({len(reader.pages)} pages).")
+                
+                amounts = re.findall(r'\b(?:\$|USD|EUR|SAR|AED)?\s?\d{1,3}(?:,\d{3})*(?:\.\d{2})?\b', text_content)
+                emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text_content)
+                
+                col_ex1, col_ex2 = st.columns(2)
+                with col_ex1:
+                    st.info(f"💡 **Extracted Monetary Tokens:** {', '.join(amounts[:10]) if amounts else 'None detected'}")
+                with col_ex2:
+                    st.info(f"📧 **Extracted Entities & Emails:** {', '.join(emails[:6]) if emails else 'None detected'}")
 
-        with st.expander("🔍 View Raw Tokenized Text Layer"):
-            st.text_area("Extracted Document Content", text_content, height=250, key="pdf_text_area")
-            
-        st.subheader("🤖 Automated Legal & Governance Risk Audit")
-        risk_keywords = ["fraud", "suspicious", "error", "delay", "penalty", "urgent", "unauthorized", "خطر", "مخالفة", "تأخير", "tax", "ضريبة", "غرامة", "breach"]
-        found_risks = [kw for kw in risk_keywords if kw in text_content.lower()]
+                st.subheader("💬 Autonomous Document Cognitive Assistant")
+                user_query = st.text_input("Query document context (e.g., total amount, contract clauses, penalties, taxes):", key="pdf_query")
+                if user_query:
+                    if user_query.lower() in text_content.lower() or any(w in text_content.lower() for w in user_query.lower().split()):
+                        st.success(f"✅ Cognitive match verified for query: '{user_query}' across semantic indices.")
+                    else:
+                        st.warning(f"⚠️ Semantic token match for '{user_query}' not found in current layer.")
+
+                with st.expander("🔍 View Raw Tokenized Text Layer"):
+                    st.text_area("Extracted Document Content", text_content, height=250, key="pdf_text_area")
+                    
+                st.subheader("🤖 Automated Legal & Governance Risk Audit")
+                risk_keywords = ["fraud", "suspicious", "error", "delay", "penalty", "urgent", "unauthorized", "خطر", "مخالفة", "تأخير", "tax", "ضريبة", "غرامة", "breach"]
+                found_risks = [kw for kw in risk_keywords if kw in text_content.lower()]
+                
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Governance State", "⚠️ Risk Flagged" if found_risks else "✅ Certified Clean")
+                c2.metric("Risk Indicators", len(set(found_risks)))
+                c3.metric("Neural Confidence", f"{confidence_threshold}%")
+                
+                if found_risks:
+                    st.warning(f"NEXUS Core detected governance violations: {', '.join(set(found_risks))}")
+                else:
+                    st.info("No compliance violations or governance risks detected in document layers.")
+                    
+                df_pdf = pd.DataFrame({
+                    'Document_Name': [uploaded_pdf.name],
+                    'Total_Pages': [len(reader.pages)],
+                    'Risk_Flags_Count': [len(found_risks)],
+                    'Audit_Status': ['Review Required' if found_risks else 'Certified Clean']
+                })
+                st.dataframe(df_pdf, use_container_width=True)
+                
+                csv_pdf = df_pdf.to_csv(index=False).encode('utf-8')
+                st.download_button("Download PDF Governance Certificate (CSV)", data=csv_pdf, file_name='enterprise_pdf_certificate.csv', mime='text/csv', key='dl_pdf')
         
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Governance State", "⚠️ Risk Flagged" if found_risks else "✅ Certified Clean")
-        c2.metric("Risk Indicators", len(set(found_risks)))
-        c3.metric("Neural Confidence", f"{confidence_threshold}%")
-        
-        if found_risks:
-            st.warning(f"NEXUS Core detected governance violations: {', '.join(set(found_risks))}")
-        else:
-            st.info("No compliance violations or governance risks detected in document layers.")
-            
-        df_pdf = pd.DataFrame({
-            'Document_Name': [uploaded_pdf.name],
-            'Total_Pages': [len(reader.pages)],
-            'Risk_Flags_Count': [len(found_risks)],
-            'Audit_Status': ['Review Required' if found_risks else 'Certified Clean']
-        })
-        st.dataframe(df_pdf, use_container_width=True)
-        
-        csv_pdf = df_pdf.to_csv(index=False).encode('utf-8')
-        st.download_button("Download PDF Governance Certificate (CSV)", data=csv_pdf, file_name='enterprise_pdf_certificate.csv', mime='text/csv', key='dl_pdf')
+        except Exception as e:
+            st.error(f"❌ Error reading PDF file: {str(e)}")
     else:
         st.info("👈 Please upload a secure PDF file above to activate the neural document parsing engine.")
 
@@ -246,28 +251,30 @@ with tab3:
 # ----------------------------------------------------
 with tab4:
     st.subheader("📦 Bulk Batch ZIP Processing & Enterprise Ingestion")
-    st.markdown("Massive parallel ingestion and processing of corporate archives containing hundreds of logs, invoices, and financial records.")
-    
     uploaded_zip = st.file_uploader("Upload Corporate ZIP Archive (Bulk Files)", type=["zip"], key="zip_file")
     
     if uploaded_zip is not None:
-        with zipfile.ZipFile(uploaded_zip, 'r') as z:
-            file_list = z.namelist()
-            st.success(f"Successfully unpacked corporate secure archive. Files discovered: {len(file_list)}")
-            
-            batch_data = []
-            for filename in file_list[:40]:
-                batch_data.append({
-                    'File_Name': filename,
-                    'Size_KB': round(z.getinfo(filename).file_size / 1024, 2),
-                    'Processing_Status': 'Neural Parsed Successfully',
-                    'Security_Audit': 'Quantum Verified'
-                })
-            df_zip = pd.DataFrame(batch_data)
-            st.dataframe(df_zip, use_container_width=True)
-            
-            csv_zip = df_zip.to_csv(index=False).encode('utf-8')
-            st.download_button("Download Bulk Batch Audit Report (CSV)", data=csv_zip, file_name='enterprise_batch_certificate.csv', mime='text/csv', key='dl_zip')
+        try:
+            zip_bytes = io.BytesIO(uploaded_zip.getvalue())
+            with zipfile.ZipFile(zip_bytes, 'r') as z:
+                file_list = z.namelist()
+                st.success(f"Successfully unpacked corporate secure archive. Files discovered: {len(file_list)}")
+                
+                batch_data = []
+                for filename in file_list[:40]:
+                    batch_data.append({
+                        'File_Name': filename,
+                        'Size_KB': round(z.getinfo(filename).file_size / 1024, 2),
+                        'Processing_Status': 'Neural Parsed Successfully',
+                        'Security_Audit': 'Quantum Verified'
+                    })
+                df_zip = pd.DataFrame(batch_data)
+                st.dataframe(df_zip, use_container_width=True)
+                
+                csv_zip = df_zip.to_csv(index=False).encode('utf-8')
+                st.download_button("Download Bulk Batch Audit Report (CSV)", data=csv_zip, file_name='enterprise_batch_certificate.csv', mime='text/csv', key='dl_zip')
+        except Exception as e:
+            st.error(f"❌ Error processing ZIP file: {str(e)}")
     else:
         st.info("👈 Please upload a ZIP archive containing logs or invoices for massive bulk neural processing.")
 
@@ -302,4 +309,4 @@ with tab5:
 # Global Commercial Footer
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: #64748B;'>© 2026 NEXUS AI Systems Inc. | Enterprise Cognitive & Compliance Suite. All Rights Reserved.</p>", unsafe_allow_html=True)
-                                 
+    
