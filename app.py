@@ -1,108 +1,97 @@
-import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
+import streamlit as st
 from sklearn.ensemble import IsolationForest
-from datetime import datetime
+import plotly.express as px
 
-# إعدادات الصفحة
+# Set page configuration
 st.set_page_config(
-    page_title="نظام كشف الشذوذ والأمن السيبراني",
+    page_title="Cyber Anomaly & Threat Detector",
     page_icon="🛡️",
     layout="wide"
 )
 
-st.title("🛡️ نظام كشف الشذوذ والأنشطة المشبوهة (Cyber Anomaly Detector)")
-st.markdown("---")
+# App Header
+st.title("🛡️ Cyber Anomaly & Threat Detection System")
+st.markdown("An AI-powered security tool to detect malicious network activities and anomalies using Machine Learning.")
 
-# الشريط الجانبي للإعدادات والتحكم
-st.sidebar.header("⚙️ إعدادات النموذج والبيانات")
+# Sidebar Controls
+st.sidebar.header("Configuration Panel")
+st.sidebar.markdown("Upload your network logs or use generated sample data.")
 
-# خيار توليد بيانات وهمية أو رفع ملف
-data_source = st.sidebar.radio("اختر مصدر البيانات:", ["توليد بيانات شبكة افتراضية", "رفع ملف CSV"])
+# File Uploader for Real Data
+uploaded_file = st.sidebar.file_uploader("Upload Network Logs (.csv)", type=["csv"])
 
-if data_source == "توليد بيانات شبكة افتراضية":
-    st.sidebar.subheader("خصائص التوليد")
-    n_samples = st.sidebar.slider("عدد سجلات حركة المرور:", 100, 2000, 500, 100)
-    contamination_rate = st.sidebar.slider("نسبة الشذوذ المتوقعة (Contamination):", 0.01, 0.2, 0.05, 0.01)
-    
-    # توليد بيانات شبكة افتراضية (حجم الحزم، عدد المحاولات، زمن الاستجابة)
-    np.random.seed(42)
-    packet_size = np.random.normal(500, 100, n_samples)
-    failed_attempts = np.random.poisson(1, n_samples)
-    response_time = np.random.exponential(0.5, n_samples)
-    
-    # حقن بعض القيم الشاذة قصداً
-    n_anomalies = int(n_samples * contamination_rate)
-    anomaly_indices = np.random.choice(n_samples, n_anomalies, replace=False)
-    packet_size[anomaly_indices] = np.random.uniform(2500, 5000, n_anomalies)
-    failed_attempts[anomaly_indices] = np.random.randint(10, 25, n_anomalies)
-    
-    df = pd.DataFrame({
-        'Packet_Size': packet_size,
-        'Failed_Attempts': failed_attempts,
-        'Response_Time': response_time
-    })
-    
-    # إضافة طابع زمني للسجلات
-    df['Timestamp'] = [datetime.now().strftime("%Y-%m-%d %H:%M:%S")] * n_samples
-
-else:
-    uploaded_file = st.sidebar.file_uploader("اختر ملف CSV", type=["csv"])
-    if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
+# Data Generation or Loading
+@st.cache_data
+def load_data(file):
+    if file is not None:
+        df = pd.read_csv(file)
     else:
-        st.info("الرجاء رفع ملف CSV أو اختيار توليد بيانات افتراضية من الشريط الجانبي.")
-        st.stop()
+        # Generate realistic sample data if no file is uploaded
+        np.random.seed(42)
+        n_samples = 500
+        data = {
+            'Packet_Size': np.random.normal(500, 100, n_samples),
+            'Failed_Attempts': np.random.poisson(1, n_samples),
+            'Response_Time': np.random.exponential(1.5, n_samples)
+        }
+        # Inject some synthetic anomalies (attacks)
+        data['Packet_Size'][10:20] = np.random.normal(4000, 500, 10)
+        data['Failed_Attempts'][10:20] = np.random.randint(15, 25, 10)
+        
+        df = pd.DataFrame(data)
+        df['Timestamp'] = pd.date_range(start='2026-11-15 18:00:00', periods=n_samples, freq='s')
+    return df
 
-# عرض عينة من البيانات الأصلية
-st.subheader("📊 عينة من سجلات الشبكة المرصودة")
-st.dataframe(df.head(10), use_container_width=True)
+df = load_data(uploaded_file)
 
-# تدريب نموذج Isolation Forest لكشف الشذوذ
-model = IsolationForest(contamination=contamination_rate, random_state=42)
+# Machine Learning Model (Isolation Forest)
+model = IsolationForest(contamination=0.05, random_state=42)
 df['Anomaly_Score'] = model.fit_predict(df[['Packet_Size', 'Failed_Attempts', 'Response_Time']])
+df['Status'] = df['Anomaly_Score'].apply(lambda x: 'Anomaly (Threat)' if x == -1 else 'Normal')
 
-# تحويل النتائج إلى تسميات واضحة (-1 يعني شذوذ/خطر، 1 يعني طبيعي)
-df['Status'] = df['Anomaly_Score'].apply(lambda x: 'مشبوه (Anomaly)' if x == -1 else 'طبيعي (Normal)')
-
-# إحصائيات عامة
+# Main Metrics Dashboard
+st.subheader("📊 Network Traffic Overview")
 col1, col2, col3 = st.columns(3)
+
 total_records = len(df)
-anomalies_count = len(df[df['Status'] == 'مشبوه (Anomaly)'])
-normal_count = total_records - anomalies_count
+total_threats = len(df[df['Status'] == 'Anomaly (Threat)'])
+network_status = "⚠️ High Risk Detected" if total_threats > 15 else "✅ Relatively Secure"
 
-col1.metric("إجمالي السجلات المفحوصة", total_records)
-col2.metric("التهديدات / الأنشطة الشاذة", anomalies_count, delta_color="inverse")
-col3.metric("الحالة العامة للشبكة", "آمنة نسبياً" if anomalies_count < (total_records * 0.1) else "تحذير: نشاط عالي!")
+col1.metric("Total Records Analyzed", total_records)
+col2.metric("Detected Threats / Anomalies", total_threats)
+col3.metric("Overall Network Status", network_status)
 
-st.markdown("---")
-
-# تصور البيانات مرئياً باستخدام Plotly
-st.subheader("📈 التحليل البصري لحركة المرور")
+# Visualizing Data with Plotly
+st.subheader("📈 Visual Threat Analysis")
 fig = px.scatter(
     df, 
     x='Packet_Size', 
     y='Failed_Attempts', 
     color='Status',
-    color_discrete_map={'طبيعي (Normal)': '#00CC96', 'مشبوه (Anomaly)': '#EF553B'},
-    title="توزيع حركة المرور واكتشاف القيم الشاذة",
-    labels={'Packet_Size': 'حجم الحزمة (بايت)', 'Failed_Attempts': 'محاولات الفشل'}
+    color_discrete_map={'Normal': '#00CC96', 'Anomaly (Threat)': '#EF553B'},
+    title="Network Traffic Distribution & Anomaly Detection",
+    hover_data=['Timestamp', 'Response_Time']
 )
 st.plotly_chart(fig, use_container_width=True)
 
-# عرض السجلات المشبوهة وحدها
-if anomalies_count > 0:
-    st.subheader("⚠️ سجلات الأنشطة المشبوهة المكتشفة")
-    st.dataframe(df[df['Status'] == 'مشبوه (Anomaly)'], use_container_width=True)
+# Displaying Data Tables
+st.subheader("📋 Filtered Network Logs")
+st.dataframe(df, use_container_width=True)
 
-    # زر لتصدير التقرير كملف CSV
-    csv_data = df[df['Status'] == 'مشبوه (Anomaly)'].to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 تحميل تقرير التهديدات (CSV)",
-        data=csv_data,
-        file_name='security_anomalies_report.csv',
-        mime='text/csv',
-    )
-else:
-    st.success("لم يتم رصد أي أنشطة شاذة أو هجمات بناءً على المعايير الحالية.")
+# Export Report Feature
+st.subheader("📥 Export Threat Report")
+anomalies_df = df[df['Status'] == 'Anomaly (Threat)']
+
+csv_data = anomalies_df.to_csv(index=False).encode('utf-8')
+st.download_button(
+    label="Download Threat Report (CSV)",
+    data=csv_data,
+    file_name='cyber_threat_report.csv',
+    mime='text/csv'
+)
+
+# Footer
+st.markdown("---")
+st.markdown("🔒 **Cyber Anomaly Detector Platform** | Built for Global Security Solutions")
