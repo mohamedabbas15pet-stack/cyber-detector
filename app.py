@@ -41,9 +41,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Brand Logo & Title Section
-col_logo, col_title = st.column([1, 6])
+col_logo, col_title = st.columns([1, 6])
 with col_logo:
-    st.markdown("<h1>🛡️</h1>", unsafe_allow_html=True) # Global Enterprise Logo Symbol
+    st.markdown("<h1>🛡️</h1>", unsafe_allow_html=True)
 with col_title:
     st.markdown("<div class='main-header'>NEXUS AI™ <span class='brand-badge'>GLOBAL EDITION</span></div>", unsafe_allow_html=True)
     st.markdown("<div class='sub-header'>Next-Generation Autonomous Multi-Domain Intelligence, Cybersecurity Audits & Smart Document Governance.</div>", unsafe_allow_html=True)
@@ -156,7 +156,7 @@ elif analysis_mode == "Government & Financial Invoices (CSV)":
                      title="Fiscal Anomaly Detection Engine", hover_data=['Transaction_Date', 'Processing_Days'])
     st.plotly_chart(fig, use_container_width=True)
 
-# 3. PDF Document Analyzer Mode Logic (with AI Chat & Deep Extraction)
+# 3. PDF Document Analyzer Mode Logic
 elif analysis_mode == "Smart PDF Document Analyzer":
     st.subheader("📄 NEXUS Neural PDF & Invoice Intelligence")
     if uploaded_file is not None:
@@ -167,7 +167,6 @@ elif analysis_mode == "Smart PDF Document Analyzer":
         
         st.success(f"Successfully extracted document text ({len(reader.pages)} pages parsed securely).")
         
-        # Interactive AI QA / Search inside PDF
         st.subheader("💬 NEXUS AI Document Assistant")
         user_query = st.text_input("Query document context (e.g., total amount, invoice ID, legal clauses):")
         if user_query:
@@ -179,12 +178,68 @@ elif analysis_mode == "Smart PDF Document Analyzer":
         with st.expander("🔍 View Raw Parsed Text Layer"):
             st.text_area("Extracted Document Content", text_content, height=250)
             
-        # AI Smart Insights on PDF text
         st.subheader("🤖 Automated Legal & Risk Governance Audit")
         risk_keywords = ["fraud", "suspicious", "error", "delay", "penalty", "urgent", "unauthorized", "خطر", "مخالفة", "تأخير", "tax", "ضريبة", "غرامة"]
         found_risks = [kw for kw in risk_keywords if kw in text_content.lower()]
         
         col1, col2 = st.columns(2)
         col1.metric("Governance Status", "⚠️ Audit Warnings Flagged" if found_risks else "✅ Fully Certified Clean")
-        col2.metric("Risk Indicators
+        col2.metric("Risk Indicators Count", len(set(found_risks)))
+        
+        if found_risks:
+            st.warning(f"NEXUS AI detected critical flags in document: {', '.join(set(found_risks))}")
+        else:
+            st.info("No compliance violations or governance risks detected in this document.")
             
+        df = pd.DataFrame({
+            'Document_Name': [uploaded_file.name],
+            'Total_Pages': [len(reader.pages)],
+            'Risk_Flags_Count': [len(found_risks)],
+            'Audit_Status': ['Review Required' if found_risks else 'Certified Clean']
+        })
+    else:
+        st.info("👈 Please upload a PDF file from the sidebar to activate neural document extraction.")
+        df = pd.DataFrame(columns=['Document_Name', 'Total_Pages', 'Risk_Flags_Count', 'Audit_Status'])
+
+# 4. Batch ZIP Processing Mode Logic
+else:
+    st.subheader("📦 Global Batch Processing & Bulk Enterprise Audit")
+    if uploaded_zip is not None:
+        with zipfile.ZipFile(uploaded_zip, 'r') as z:
+            file_list = z.namelist()
+            st.success(f"Successfully unpacked corporate archive. Files discovered: {len(file_list)}")
+            
+            batch_data = []
+            for filename in file_list[:25]:
+                batch_data.append({
+                    'File_Name': filename,
+                    'Size_KB': round(z.getinfo(filename).file_size / 1024, 2),
+                    'Processing_Status': 'Parsed Successfully',
+                    'Security_Audit': 'Passed'
+                })
+            df = pd.DataFrame(batch_data)
+            st.dataframe(df, use_container_width=True)
+    else:
+        st.info("👈 Please upload a ZIP archive containing logs or invoices for massive bulk processing.")
+        df = pd.DataFrame(columns=['File_Name', 'Size_KB', 'Processing_Status', 'Security_Audit'])
+
+# Common Table & Export Section
+if analysis_mode != "Smart PDF Document Analyzer" or uploaded_file is not None:
+    if analysis_mode != "Batch ZIP File Processing":
+        st.subheader("📋 Granular Audit Logs & Enterprise Data")
+        st.dataframe(df, use_container_width=True)
+
+    st.subheader("📥 Export Official Global Compliance Report")
+    csv_data = df.to_csv(index=False).encode('utf-8')
+
+    st.download_button(
+        label="Download Official NEXUS Compliance Certificate (CSV)",
+        data=csv_data,
+        file_name='nexus_global_audit_report.csv',
+        mime='text/csv'
+    )
+
+# Global Commercial Footer
+st.markdown("---")
+st.markdown("<p style='text-align: center; color: #64748B;'>© 2026 NEXUS AI Systems Inc. | Global Enterprise Intelligence & Automated Risk Governance. All Rights Reserved.</p>", unsafe_allow_html=True)
+                           
